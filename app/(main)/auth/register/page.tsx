@@ -125,7 +125,7 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      await register({
+      const result = await register({
         firstName,
         lastName,
         email,
@@ -133,7 +133,8 @@ export default function Register() {
         matchPassword,
         tel: tel || undefined,
       });
-      router.push("/auth/login?registered=1");
+      const confirmParam = result.requiresEmailConfirmation ? "&confirm=email" : "";
+      router.push(`/auth/login?registered=1${confirmParam}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Inscription impossible");
     } finally {

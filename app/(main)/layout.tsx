@@ -1,7 +1,6 @@
 import Navbar from "../components/main/Navbar";
 import Footer from "../components/main/Footer";
 import { TopBar } from "../components/main/TopBar";
-import ProfessionStrip from "../components/main/SubNav";
 
 export default function MainLayout({
   children,
@@ -10,13 +9,14 @@ export default function MainLayout({
 }) {
   return (
     <>
-      <header>
-        <TopBar />
-        <Navbar />
-        <ProfessionStrip />
-      </header>
+      <div className="[--main-header-height:7.5rem]">
+        <header>
+          <TopBar />
+          <Navbar />
+        </header>
 
-      <main>{children}</main>
+        <main>{children}</main>
+      </div>
 
       <Footer />
     </>

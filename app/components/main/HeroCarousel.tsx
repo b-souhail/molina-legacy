@@ -77,7 +77,7 @@ export default function HeroCarousel() {
   };
 
   return (
-    <section className="relative w-full h-screen overflow-hidden bg-(--cream)">
+    <section className="relative h-full w-full overflow-hidden bg-(--cream)">
       {/* Carousel Container */}
       <div className="relative w-full h-full">
         {/* Slides */}

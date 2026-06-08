@@ -175,6 +175,7 @@ export default function Login() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered") === "1";
+  const needsEmailConfirm = searchParams.get("confirm") === "email";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -344,7 +345,9 @@ export default function Login() {
         {/* FORM */}
         {registered && (
           <p className="mb-4 text-center text-[12px] text-[var(--gold)]">
-            Compte créé. Vérifiez votre email pour confirmer votre inscription.
+            {needsEmailConfirm
+              ? "Compte créé. Vérifiez votre email pour confirmer votre inscription."
+              : "Compte créé avec succès. Vous pouvez vous connecter."}
           </p>
         )}
 

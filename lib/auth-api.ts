@@ -44,6 +44,11 @@ export async function login(
   return data as UserResponse;
 }
 
+export type RegisterResponse = {
+  message?: string;
+  requiresEmailConfirmation?: boolean;
+};
+
 export async function register(payload: {
   firstName: string;
   lastName: string;
@@ -51,7 +56,7 @@ export async function register(payload: {
   password: string;
   matchPassword: string;
   tel?: string;
-}): Promise<void> {
+}): Promise<RegisterResponse> {
   const res = await fetch(`${API_BASE}/api/auth/register`, {
     method: "POST",
     credentials: "include",
@@ -59,7 +64,7 @@ export async function register(payload: {
     body: JSON.stringify(payload),
   });
 
-  const data = await parseJson<ApiError>(res);
+  const data = await parseJson<RegisterResponse & ApiError>(res);
 
   if (!res.ok) {
     const firstError =
@@ -69,9 +74,12 @@ export async function register(payload: {
       data.firstName ??
       data.lastName ??
       data.matchPassword ??
+      data.tel ??
       "Inscription impossible";
     throw new Error(firstError);
   }
+
+  return data;
 }
 
 export async function logout(): Promise<void> {
