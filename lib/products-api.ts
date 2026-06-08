@@ -29,3 +29,22 @@ export async function fetchProducts(): Promise<Product[]> {
 
   return parseJson<Product[]>(res);
 }
+
+export async function fetchProductBySlug(
+  slug: string
+): Promise<Product | null> {
+  const res = await fetch(
+    `${API_BASE}/api/products/${encodeURIComponent(slug)}`,
+    { credentials: "include" }
+  );
+
+  if (res.status === 404) {
+    return null;
+  }
+
+  if (!res.ok) {
+    throw new Error("Impossible de charger le produit");
+  }
+
+  return parseJson<Product>(res);
+}

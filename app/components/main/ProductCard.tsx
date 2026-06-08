@@ -2,11 +2,25 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ShoppingCart } from "lucide-react";
 
+import { useCart } from "@/lib/cart-context";
 import type { Product } from "@/lib/products-api";
 
 export function ProductCard({ product }: { product: Product }) {
+  const { addItem } = useCart();
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    addItem({
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: Number(product.price),
+      imageUrl: product.imageUrl,
+    });
+  };
+
   return (
     <article className="group relative flex flex-col bg-(--cream) transition-all duration-500">
       <span className="absolute left-0 top-0 z-10 h-3 w-3 border-l border-t border-(--gold)/40 transition-all duration-300 group-hover:h-5 group-hover:w-5 group-hover:border-(--gold)" />
@@ -51,26 +65,22 @@ export function ProductCard({ product }: { product: Product }) {
 
         <div className="h-px w-full bg-linear-to-r from-transparent via-(--gold)/30 to-transparent" />
 
-        <Link
-          href={`/product?slug=${product.slug}`}
-          className="
-            text-center
-            py-2.5
-            text-[9px]
-            uppercase
-            tracking-[0.32em]
-            text-(--forest)
-            border
-            border-(--forest)/20
-            transition-all
-            duration-300
-            hover:border-(--forest)
-            hover:bg-(--forest)
-            hover:text-(--gold)
-          "
-        >
-          Découvrir
-        </Link>
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            href={`/product?slug=${product.slug}`}
+            className="text-center py-2.5 text-[9px] uppercase tracking-[0.32em] text-(--forest) border border-(--forest)/20 transition-all duration-300 hover:border-(--forest) hover:bg-(--forest) hover:text-(--gold)"
+          >
+            Découvrir
+          </Link>
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className="flex items-center justify-center gap-1.5 py-2.5 text-[9px] uppercase tracking-[0.22em] text-(--forest) border border-(--gold)/40 transition-all duration-300 hover:border-(--gold) hover:bg-(--gold)/10"
+          >
+            <ShoppingCart size={12} />
+            Panier
+          </button>
+        </div>
       </div>
     </article>
   );
