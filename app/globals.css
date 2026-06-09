@@ -134,7 +134,7 @@ h4,
   background-clip: text;
   color: transparent;
 
-  animation: luxuryShine 12s linear infinite,
+  animation: luxuryShine 12s linear infinite;
 }
 
 @keyframes luxuryShine {
@@ -144,5 +144,53 @@ h4,
 
   to {
     background-position: -200% center;
+  }
+}
+
+/* =========================
+   FACTURE / PRINT
+========================= */
+
+@media print {
+  @page {
+    margin: 0;
+    size: A4;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  .facture-page {
+    min-height: auto !important;
+    margin: 0 !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  .facture-page > div {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .facture-page > div > div {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    outline: none !important;
+  }
+
+  .facture-document {
+    margin: 0 !important;
+    max-width: none !important;
+    padding: 12mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    outline: none !important;
   }
 }

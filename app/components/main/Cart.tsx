@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 
 import { useCart } from "@/lib/cart-context";
-import { createOrder } from "@/lib/orders-api";
+import { resolveProductImageUrl } from "@/lib/image-url";
 
 const formatPrice = (n: number) =>
   new Intl.NumberFormat("fr-MA", {
@@ -17,7 +16,6 @@ const formatPrice = (n: number) =>
   }).format(n);
 
 export default function Cart() {
-  const router = useRouter();
   const {
     items,
     isOpen,
@@ -27,11 +25,7 @@ export default function Cart() {
     closeCart,
     updateQuantity,
     removeItem,
-    clearCart,
   } = useCart();
-  const [checkingOut, setCheckingOut] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
@@ -39,37 +33,6 @@ export default function Cart() {
       document.body.style.overflow = "";
     };
   }, [isOpen]);
-
-  const handleCheckout = async () => {
-    if (items.length === 0) {
-      return;
-    }
-
-    setCheckingOut(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const order = await createOrder({
-        items: items.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        })),
-      });
-      clearCart();
-      setMessage(`Commande #${order.id} enregistrée avec succès.`);
-    } catch (err) {
-      if (err instanceof Error && err.message === "CONNECT_REQUIRED") {
-        router.push("/auth/login?redirect=/");
-        return;
-      }
-      setError(
-        err instanceof Error ? err.message : "Impossible de passer la commande"
-      );
-    } finally {
-      setCheckingOut(false);
-    }
-  };
 
   return (
     <>
@@ -133,7 +96,7 @@ export default function Cart() {
                 >
                   <div className="relative h-28 w-20 shrink-0 overflow-hidden border border-white/5">
                     <Image
-                      src={item.imageUrl}
+                      src={resolveProductImageUrl(item.imageUrl)}
                       alt={item.name}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
@@ -196,13 +159,6 @@ export default function Cart() {
         </div>
 
         <footer className="border-t border-white/5 bg-[#111c16] p-6">
-          {message && (
-            <p className="mb-4 text-sm text-(--gold)">{message}</p>
-          )}
-          {error && (
-            <p className="mb-4 text-sm text-red-400">{error}</p>
-          )}
-
           <div className="mb-6 flex items-end justify-between">
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em] text-(--cream)/35">
@@ -214,13 +170,17 @@ export default function Cart() {
             </div>
           </div>
 
-          <button
-            onClick={handleCheckout}
-            disabled={items.length === 0 || checkingOut}
-            className="h-14 w-full border border-(--gold) bg-(--gold) text-[11px] font-semibold uppercase tracking-[0.35em] text-black transition-all duration-300 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          <Link
+            href="/checkout"
+            onClick={closeCart}
+            className={`flex h-14 w-full items-center justify-center border border-(--gold) bg-(--gold) text-[11px] font-semibold uppercase tracking-[0.35em] text-black transition-all duration-300 hover:opacity-90 ${
+              items.length === 0
+                ? "pointer-events-none opacity-40"
+                : ""
+            }`}
           >
-            {checkingOut ? "Commande en cours…" : "Commander"}
-          </button>
+            Commander
+          </Link>
 
           {items.length === 0 && (
             <Link

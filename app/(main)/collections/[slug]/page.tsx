@@ -1,101 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
+import { CatalogSectionHeading } from "@/app/components/main/CatalogSectionHeading";
+import { CollectionPageHeader } from "@/app/components/main/CollectionPageHeader";
+import { ProductCatalogControls } from "@/app/components/main/ProductCatalogControls";
 import {
   ProductCard,
   ProductSkeleton,
 } from "@/app/components/main/ProductCard";
-import {
-  categoryAbbr,
-  fetchCategoryPage,
-  type CategoryPage,
-} from "@/lib/categories-api";
-
-function SubcategoryCard({
-  name,
-  slug,
-}: {
-  name: string;
-  slug: string;
-}) {
-  return (
-    <Link
-      href={`/collections/${slug}`}
-      className="
-        group
-        relative
-        flex
-        flex-col
-        items-center
-        gap-3
-        border
-        border-(--gold)/20
-        bg-(--cream)
-        px-6
-        py-8
-        transition-all
-        duration-300
-        hover:border-(--gold)/50
-        hover:shadow-[0_8px_28px_rgba(17,22,19,0.08)]
-      "
-    >
-      <span className="absolute left-0 top-0 h-3 w-3 border-l border-t border-(--gold)/40" />
-      <span className="absolute right-0 top-0 h-3 w-3 border-r border-t border-(--gold)/40" />
-      <span className="absolute bottom-0 left-0 h-3 w-3 border-b border-l border-(--gold)/40" />
-      <span className="absolute bottom-0 right-0 h-3 w-3 border-b border-r border-(--gold)/40" />
-
-      <div
-        className="
-          flex
-          h-14
-          w-14
-          items-center
-          justify-center
-          rounded-full
-          border
-          border-(--forest)/15
-          bg-(--cream)
-          text-sm
-          font-semibold
-          tracking-[0.14em]
-          text-(--forest)
-          transition-transform
-          duration-300
-          group-hover:scale-105
-        "
-      >
-        {categoryAbbr(name)}
-      </div>
-
-      <p
-        className="
-          text-center
-          text-[10px]
-          uppercase
-          tracking-[0.18em]
-          text-(--forest)/75
-          transition-colors
-          group-hover:text-(--forest)
-        "
-      >
-        {name}
-      </p>
-    </Link>
-  );
-}
+import { SubcategoryCard } from "@/app/components/main/SubcategoryCard";
+import { fetchCategoryPage, type CategoryPage } from "@/lib/categories-api";
+import type { ProductSort } from "@/lib/products-api";
 
 export default function CollectionPage() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
+
+  const sort = (searchParams.get("sort") as ProductSort) || "name-asc";
+  const productPage = Number(searchParams.get("page") ?? "0");
+  const minPrice = searchParams.get("minPrice") ?? "";
+  const maxPrice = searchParams.get("maxPrice") ?? "";
 
   const [page, setPage] = useState<CategoryPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [draftMin, setDraftMin] = useState(minPrice);
+  const [draftMax, setDraftMax] = useState(maxPrice);
+
+  useEffect(() => {
+    setDraftMin(minPrice);
+    setDraftMax(maxPrice);
+  }, [minPrice, maxPrice]);
 
   useEffect(() => {
     if (!slug) {
@@ -104,7 +45,13 @@ export default function CollectionPage() {
       return;
     }
 
-    fetchCategoryPage(slug)
+    fetchCategoryPage(slug, {
+      page: Number.isNaN(productPage) ? 0 : productPage,
+      size: 12,
+      sort,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+    })
       .then((data) => {
         if (!data) {
           setMissing(true);
@@ -114,7 +61,37 @@ export default function CollectionPage() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, sort, productPage, minPrice, maxPrice]);
+
+  const pushParams = (next: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(next).forEach(([key, value]) => {
+      if (!value) params.delete(key);
+      else params.set(key, value);
+    });
+    router.push(`/collections/${slug}?${params.toString()}`);
+  };
+
+  const breadcrumbs = useMemo(() => {
+    if (!page) {
+      return [
+        { label: "Accueil", href: "/" },
+        { label: "Collections", href: "/collections" },
+      ];
+    }
+
+    return [
+      { label: "Accueil", href: "/" },
+      { label: "Collections", href: "/collections" },
+      ...page.breadcrumbs.map((crumb, index) => ({
+        label: crumb.name,
+        href:
+          index < page.breadcrumbs.length - 1
+            ? `/collections/${crumb.slug}`
+            : undefined,
+      })),
+    ];
+  }, [page]);
 
   if (loading) {
     return (
@@ -138,10 +115,10 @@ export default function CollectionPage() {
           Catégorie introuvable
         </p>
         <Link
-          href="/"
+          href="/collections"
           className="mt-6 text-[10px] uppercase tracking-[0.22em] text-(--sage) hover:text-(--gold)"
         >
-          Retour à l&apos;accueil
+          Retour aux collections
         </Link>
       </div>
     );
@@ -152,46 +129,11 @@ export default function CollectionPage() {
 
   return (
     <div className="min-h-screen bg-(--cream)">
-      <section className="relative overflow-hidden border-b border-(--gold)/20">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(184,154,90,0.10),transparent_60%)]" />
-
-        <div className="relative mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-14">
-          <nav className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-(--sage)">
-            <Link href="/" className="transition-colors hover:text-(--gold)">
-              Accueil
-            </Link>
-            {page.breadcrumbs.map((crumb, index) => (
-              <span key={crumb.id} className="flex items-center gap-2">
-                <ChevronRight size={10} className="text-(--gold)/60" />
-                {index === page.breadcrumbs.length - 1 ? (
-                  <span className="text-(--forest)">{crumb.name}</span>
-                ) : (
-                  <Link
-                    href={`/collections/${crumb.slug}`}
-                    className="transition-colors hover:text-(--gold)"
-                  >
-                    {crumb.name}
-                  </Link>
-                )}
-              </span>
-            ))}
-          </nav>
-
-          <div className="mt-8">
-            <p className="mb-3 text-[9px] uppercase tracking-[0.55em] text-(--sage)">
-              Collection
-            </p>
-            <h1 className="font-heading text-4xl text-(--forest) md:text-5xl">
-              {page.name}
-            </h1>
-            <div className="mt-5 flex items-center gap-3">
-              <div className="h-px w-10 bg-(--gold)/50" />
-              <div className="h-1.5 w-1.5 rotate-45 border border-(--gold)" />
-              <div className="h-px w-10 bg-(--gold)/50" />
-            </div>
-          </div>
-        </div>
-      </section>
+      <CollectionPageHeader
+        eyebrow="Collection"
+        title={page.name}
+        breadcrumbs={breadcrumbs}
+      />
 
       <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
         {error && (
@@ -202,15 +144,10 @@ export default function CollectionPage() {
 
         {hasChildren && (
           <section className="mb-16 md:mb-20">
-            <div className="mb-8 flex items-end justify-between">
-              <h2 className="font-heading text-2xl text-(--forest)">
-                Sous-catégories
-              </h2>
-              <p className="text-[10px] uppercase tracking-[0.22em] text-(--sage)">
-                {page.children.length} catégorie
-                {page.children.length > 1 ? "s" : ""}
-              </p>
-            </div>
+            <CatalogSectionHeading
+              title="Sous-catégories"
+              countLabel={`${page.children.length} catégorie${page.children.length > 1 ? "s" : ""}`}
+            />
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 md:gap-5">
               {page.children.map((child) => (
                 <SubcategoryCard
@@ -225,23 +162,35 @@ export default function CollectionPage() {
 
         {hasProducts && (
           <section>
-            <div className="mb-8 flex items-end justify-between">
-              <div>
-                <h2 className="font-heading text-2xl text-(--forest)">
-                  Produits
-                </h2>
-                {hasChildren && (
-                  <p className="mt-1 text-[10px] tracking-[0.06em] text-(--sage)">
-                    Incluant les sous-catégories
-                  </p>
-                )}
-              </div>
-              <p className="text-[10px] uppercase tracking-[0.22em] text-(--sage)">
-                {page.products.length} pièce
-                {page.products.length > 1 ? "s" : ""}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 md:gap-5">
+            <CatalogSectionHeading
+              title="Produits"
+              subtitle={hasChildren ? "Incluant les sous-catégories" : undefined}
+              countLabel={`${page.productTotal ?? page.products.length} pièce${(page.productTotal ?? page.products.length) > 1 ? "s" : ""}`}
+            />
+
+            <ProductCatalogControls
+              sort={sort}
+              minPrice={draftMin}
+              maxPrice={draftMax}
+              page={page.productPage ?? 0}
+              totalPages={page.productTotalPages ?? 1}
+              total={page.productTotal ?? page.products.length}
+              onSortChange={(value) => pushParams({ sort: value, page: "0" })}
+              onMinPriceChange={setDraftMin}
+              onMaxPriceChange={setDraftMax}
+              onApplyFilters={() =>
+                pushParams({
+                  minPrice: draftMin || null,
+                  maxPrice: draftMax || null,
+                  page: "0",
+                })
+              }
+              onPageChange={(nextPage) =>
+                pushParams({ page: String(nextPage) })
+              }
+            />
+
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
               {page.products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

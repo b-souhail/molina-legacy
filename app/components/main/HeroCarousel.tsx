@@ -28,7 +28,7 @@ const CAROUSEL_SLIDES: CarouselSlide[] = [
     image: "/molina-footer_NL-bg.jpg",
     title: "Nouvelle Arrivée",
     subtitle: "Les dernières pièces de la saison",
-    link: "/nouveautes",
+    link: "/collections?sort=newest",
     linkText: "Voir Plus",
   },
   {
@@ -36,7 +36,7 @@ const CAROUSEL_SLIDES: CarouselSlide[] = [
     image: "/molina-footer_legal.png",
     title: "Collection Homme",
     subtitle: "Élégance et sophistication",
-    link: "/homme",
+    link: "/collections/notaire",
     linkText: "Parcourir",
   },
 ];
@@ -85,7 +85,9 @@ export default function HeroCarousel() {
           <div
             key={slide.id}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              index === currentSlide ? "opacity-100" : "opacity-0"
+              index === currentSlide
+                ? "z-10 opacity-100 pointer-events-auto"
+                : "z-0 opacity-0 pointer-events-none"
             }`}
           >
             {/* Background Image */}
@@ -126,19 +128,15 @@ export default function HeroCarousel() {
                 )}
 
                 {/* CTA Button */}
-                <Link href={slide.link}>
-                  <button className="group relative inline-flex items-center justify-center px-8 py-4 overflow-hidden">
-                    {/* Border */}
-                    <div className="absolute inset-0 border border-(--gold) rounded-[2px]" />
-
-                    {/* Hover Background */}
-                    <div className="absolute inset-0 bg-(--gold) transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left rounded-[2px]" />
-
-                    {/* Text */}
-                    <span className="relative text-xs uppercase tracking-[0.2em] text-(--gold) group-hover:text-(--forest) transition-colors duration-500 font-bold">
-                      {slide.linkText}
-                    </span>
-                  </button>
+                <Link
+                  href={slide.link}
+                  className="group relative inline-flex items-center justify-center overflow-hidden px-8 py-4"
+                >
+                  <div className="absolute inset-0 rounded-[2px] border border-(--gold)" />
+                  <div className="absolute inset-0 origin-left scale-x-0 rounded-[2px] bg-(--gold) transition-transform duration-500 group-hover:scale-x-100" />
+                  <span className="relative text-xs font-bold uppercase tracking-[0.2em] text-(--gold) transition-colors duration-500 group-hover:text-(--forest)">
+                    {slide.linkText}
+                  </span>
                 </Link>
               </div>
             </div>

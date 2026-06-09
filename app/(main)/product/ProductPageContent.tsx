@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { Heart, Share2, ShoppingCart, Check } from "lucide-react";
 
 import { useCart } from "@/lib/cart-context";
+import { resolveProductImageUrl } from "@/lib/image-url";
 import { fetchProductBySlug, type Product } from "@/lib/products-api";
 
 export default function ProductPageContent() {
@@ -124,7 +125,7 @@ export default function ProductPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           <div className="relative aspect-square rounded-[2px] overflow-hidden border border-(--gold)/30">
             <Image
-              src={product.imageUrl}
+              src={resolveProductImageUrl(product.imageUrl)}
               alt={product.name}
               fill
               priority

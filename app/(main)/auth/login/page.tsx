@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { login } from "@/lib/auth-api";
+import { useAuth } from "@/lib/auth-context";
 
 function Wordmark({
   mainColor = "#F4F1E7",
@@ -174,12 +175,20 @@ function GoldDivider() {
 export default function Login() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user: currentUser, loading: authLoading, setUser } = useAuth();
   const registered = searchParams.get("registered") === "1";
   const needsEmailConfirm = searchParams.get("confirm") === "email";
+  const redirectTo = searchParams.get("redirect") || "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && currentUser) {
+      router.replace(redirectTo);
+    }
+  }, [authLoading, currentUser, redirectTo, router]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -187,7 +196,12 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(email, password);
-      router.push(user.redirectPath ?? "/");
+      setUser(user);
+      const safeRedirect =
+        redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+          ? redirectTo
+          : user.redirectPath ?? "/";
+      router.push(safeRedirect);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connexion impossible");
     } finally {

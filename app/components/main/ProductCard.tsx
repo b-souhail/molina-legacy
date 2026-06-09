@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight, ShoppingCart } from "lucide-react";
 
 import { useCart } from "@/lib/cart-context";
+import { resolveProductImageUrl } from "@/lib/image-url";
 import type { Product } from "@/lib/products-api";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -33,7 +34,7 @@ export function ProductCard({ product }: { product: Product }) {
         className="relative block aspect-[3/4] overflow-hidden"
       >
         <Image
-          src={product.imageUrl}
+          src={resolveProductImageUrl(product.imageUrl)}
           alt={product.name}
           fill
           sizes="(max-width: 768px) 50vw, 25vw"
@@ -41,10 +42,7 @@ export function ProductCard({ product }: { product: Product }) {
         />
         <div className="absolute inset-0 bg-linear-to-t from-(--forest)/35 via-transparent to-transparent opacity-60 transition-opacity duration-500 group-hover:opacity-80" />
 
-        <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between p-4">
-          <p className="text-[9px] uppercase tracking-[0.22em] text-(--cream)/90">
-            {Number(product.price).toFixed(0)} €
-          </p>
+        <div className="absolute bottom-0 left-0 right-0 flex items-end justify-end p-4">
           <span className="flex h-8 w-8 items-center justify-center rounded-full border border-(--cream)/30 bg-(--cream)/10 text-(--cream) opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100">
             <ArrowUpRight size={14} strokeWidth={1.5} />
           </span>
@@ -56,11 +54,18 @@ export function ProductCard({ product }: { product: Product }) {
           <p className="font-heading text-sm leading-snug text-(--forest) md:text-[15px]">
             {product.name}
           </p>
-          {product.description && (
-            <p className="mt-2 line-clamp-2 text-[10px] leading-relaxed tracking-[0.04em] text-(--sage)">
-              {product.description}
+          <div className="mt-2 flex items-start justify-between gap-3">
+            {product.description ? (
+              <p className="line-clamp-2 flex-1 text-[10px] leading-relaxed tracking-[0.04em] text-(--sage)">
+                {product.description}
+              </p>
+            ) : (
+              <span className="flex-1" />
+            )}
+            <p className="shrink-0 font-heading text-lg leading-none text-(--gold) md:text-xl">
+              {Number(product.price).toFixed(0)} MAD
             </p>
-          )}
+          </div>
         </div>
 
         <div className="h-px w-full bg-linear-to-r from-transparent via-(--gold)/30 to-transparent" />
