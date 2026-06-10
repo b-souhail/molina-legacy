@@ -64,6 +64,7 @@ export default function CheckoutPage() {
         items: items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
+          optionIds: item.selectedOptionIds,
         })),
       });
       clearCart();
@@ -264,7 +265,7 @@ export default function CheckoutPage() {
             <section className="space-y-4">
               {items.map((item) => (
                 <article
-                  key={item.productId}
+                  key={item.cartKey}
                   className="flex gap-4 border border-(--gold)/20 bg-white/40 p-4"
                 >
                   <div className="relative h-28 w-20 shrink-0 overflow-hidden border border-(--gold)/15">
@@ -281,6 +282,9 @@ export default function CheckoutPage() {
                       <h3 className="font-heading text-lg text-(--forest)">
                         {item.name}
                       </h3>
+                      {item.variant && (
+                        <p className="mt-1 text-xs text-(--sage)">{item.variant}</p>
+                      )}
                       <p className="mt-1 text-sm text-(--sage)">
                         {formatPrice(item.price)} / unité
                       </p>
@@ -291,7 +295,7 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            updateQuantity(item.productId, item.quantity - 1)
+                            updateQuantity(item.cartKey, item.quantity - 1)
                           }
                           className="flex h-8 w-8 items-center justify-center text-(--forest)/60 hover:text-(--gold)"
                         >
@@ -303,7 +307,7 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            updateQuantity(item.productId, item.quantity + 1)
+                            updateQuantity(item.cartKey, item.quantity + 1)
                           }
                           className="flex h-8 w-8 items-center justify-center text-(--forest)/60 hover:text-(--gold)"
                         >
@@ -314,7 +318,7 @@ export default function CheckoutPage() {
                       <div className="text-right">
                         <button
                           type="button"
-                          onClick={() => removeItem(item.productId)}
+                          onClick={() => removeItem(item.cartKey)}
                           className="text-[10px] uppercase tracking-[0.18em] text-(--sage) hover:text-(--forest)"
                         >
                           Retirer

@@ -113,17 +113,37 @@ export default function AdminProductDetailPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
-        <div className="relative aspect-square overflow-hidden border border-(--gold)/20 bg-white">
-          {product.imageUrl ? (
-            <Image
-              src={resolveProductImageUrl(product.imageUrl)}
-              alt={product.name}
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-(--sage)">
-              Aucune image
+        <div className="space-y-3">
+          <div className="relative aspect-square overflow-hidden border border-(--gold)/20 bg-white">
+            {product.imageUrl ? (
+              <Image
+                src={resolveProductImageUrl(product.imageUrl)}
+                alt={product.name}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-(--sage)">
+                Aucune image
+              </div>
+            )}
+          </div>
+          {product.images && product.images.length > 1 && (
+            <div className="grid grid-cols-4 gap-2">
+              {product.images.map((image, index) => (
+                <div
+                  key={`${image.url}-${index}`}
+                  className="relative aspect-square overflow-hidden border border-(--gold)/15"
+                >
+                  <Image
+                    src={resolveProductImageUrl(image.url)}
+                    alt=""
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                  />
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -156,9 +176,35 @@ export default function AdminProductDetailPage() {
             </p>
           </div>
 
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-(--sage)">
+              Options
+            </p>
+            {product.options && product.options.length > 0 ? (
+              <ul className="mt-2 space-y-2 text-sm text-(--forest)">
+                {product.options.map((option) => (
+                  <li
+                    key={option.id ?? `${option.name}-${option.value}`}
+                    className="flex items-center justify-between gap-3 border border-(--forest)/10 px-3 py-2"
+                  >
+                    <span>
+                      {option.name}: {option.value}
+                    </span>
+                    <span className="text-(--sage)">
+                      {Number(option.priceAdjustment ?? 0) >= 0 ? "+" : ""}
+                      {Number(option.priceAdjustment ?? 0).toFixed(0)} MAD
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 text-sm text-(--sage)">Aucune option</p>
+            )}
+          </div>
+
           <div className="flex flex-wrap gap-3 border-t border-(--gold)/15 pt-4">
             <Link
-              href={`/product?slug=${product.slug}`}
+              href={`/product/${product.slug}`}
               className="text-xs uppercase tracking-[0.18em] text-(--forest) hover:text-(--gold)"
             >
               Voir sur le site

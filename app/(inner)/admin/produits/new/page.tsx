@@ -63,7 +63,8 @@ export default function AdminNewProductPage() {
           slug: "",
           description: "",
           price: 0,
-          imageUrl: "",
+          images: [],
+          options: [],
           categoryId: categories[0]?.id ?? 0,
         }}
         submitLabel="Créer le produit"

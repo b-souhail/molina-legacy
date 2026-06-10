@@ -99,7 +99,13 @@ export default function AdminEditProductPage() {
           slug: product.slug,
           description: product.description ?? "",
           price: Number(product.price),
-          imageUrl: product.imageUrl ?? "",
+          images:
+            product.images && product.images.length > 0
+              ? product.images
+              : product.imageUrl
+                ? [{ url: product.imageUrl, principal: true, sortOrder: 0 }]
+                : [],
+          options: product.options ?? [],
           categoryId: product.categoryId ?? categories[0]?.id ?? 0,
         }}
         submitLabel="Enregistrer"

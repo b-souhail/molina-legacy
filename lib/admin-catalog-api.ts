@@ -1,6 +1,20 @@
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:8081";
 
+export type ProductImagePayload = {
+  id?: number;
+  url: string;
+  principal?: boolean;
+  sortOrder?: number;
+};
+
+export type ProductOptionPayload = {
+  id?: number;
+  name: string;
+  value: string;
+  priceAdjustment?: number;
+};
+
 export type AdminProduct = {
   id: number;
   name: string;
@@ -8,6 +22,8 @@ export type AdminProduct = {
   description?: string;
   price: number;
   imageUrl?: string;
+  images?: ProductImagePayload[];
+  options?: ProductOptionPayload[];
   categoryId?: number;
   categoryName?: string;
 };
@@ -27,6 +43,8 @@ export type ProductPayload = {
   description?: string;
   price: number;
   imageUrl?: string;
+  images?: ProductImagePayload[];
+  options?: ProductOptionPayload[];
   categoryId: number;
 };
 

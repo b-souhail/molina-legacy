@@ -25,13 +25,21 @@ async function parseJson<T>(res: Response): Promise<T> {
 export async function login(
   email: string,
   password: string,
-  verificationCode?: string
+  options?: {
+    verificationCode?: string;
+    rememberMe?: boolean;
+  }
 ): Promise<UserResponse> {
   const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, verificationCode }),
+    body: JSON.stringify({
+      email,
+      password,
+      verificationCode: options?.verificationCode,
+      rememberMe: options?.rememberMe ?? false,
+    }),
   });
 
   const data = await parseJson<UserResponse | ApiError>(res);
@@ -103,6 +111,69 @@ export async function getCurrentUser(): Promise<UserResponse | null> {
   }
 
   return parseJson<UserResponse>(res);
+}
+
+export async function requestPasswordReset(email: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await parseJson<{ message?: string } & ApiError>(res);
+
+  if (!res.ok) {
+    const err = data as ApiError;
+    throw new Error(err.email ?? err.global ?? "Demande impossible");
+  }
+
+  return { message: data.message ?? "Email envoyé" };
+}
+
+export async function validatePasswordResetToken(
+  id: number,
+  token: string
+): Promise<void> {
+  const res = await fetch(
+    `${API_BASE}/api/auth/reset-password/validate?id=${id}&token=${encodeURIComponent(token)}`,
+    { credentials: "include" }
+  );
+
+  const data = await parseJson<{ status?: string; global?: string }>(res);
+
+  if (!res.ok) {
+    throw new Error(data.status ?? data.global ?? "Lien invalide ou expiré");
+  }
+}
+
+export async function resetPassword(payload: {
+  id: number;
+  token: string;
+  newPassword: string;
+  matchPassword: string;
+}): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await parseJson<{ message?: string; status?: string } & ApiError>(res);
+
+  if (!res.ok) {
+    const err = data as ApiError & { status?: string };
+    throw new Error(
+      err.status ??
+        err.matchPassword ??
+        err.newPassword ??
+        err.global ??
+        "Réinitialisation impossible"
+    );
+  }
+
+  return { message: data.message ?? "Mot de passe mis à jour" };
 }
 
 export async function confirmRegistration(

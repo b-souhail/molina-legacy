@@ -1,18 +1,18 @@
 import type { NextConfig } from "next";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8081";
-const apiHost = new URL(apiUrl);
+const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8081").replace(
+  /\/$/,
+  ""
+);
 
 const nextConfig: NextConfig = {
-  images: {
-    remotePatterns: [
+  async rewrites() {
+    return [
       {
-        protocol: apiHost.protocol.replace(":", "") as "http" | "https",
-        hostname: apiHost.hostname,
-        port: apiHost.port || undefined,
-        pathname: "/uploads/**",
+        source: "/uploads/:path*",
+        destination: `${apiUrl}/uploads/:path*`,
       },
-    ],
+    ];
   },
 };
 

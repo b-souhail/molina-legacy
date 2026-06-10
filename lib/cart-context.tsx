@@ -9,7 +9,10 @@ import {
   useState,
 } from "react";
 
+import { buildCartKey } from "@/lib/product-options";
+
 export type CartItem = {
+  cartKey: string;
   productId: number;
   slug: string;
   name: string;
@@ -17,6 +20,7 @@ export type CartItem = {
   quantity: number;
   imageUrl: string;
   variant?: string;
+  selectedOptionIds?: number[];
 };
 
 type CartContextValue = {
@@ -26,15 +30,22 @@ type CartContextValue = {
   totalQty: number;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
-  removeItem: (productId: number) => void;
+  addItem: (item: Omit<CartItem, "quantity" | "cartKey">, quantity?: number) => void;
+  updateQuantity: (cartKey: string, quantity: number) => void;
+  removeItem: (cartKey: string) => void;
   clearCart: () => void;
 };
 
 const STORAGE_KEY = "molina-cart";
 
 const CartContext = createContext<CartContextValue | null>(null);
+
+function normalizeCartItem(item: CartItem): CartItem {
+  const cartKey =
+    item.cartKey ??
+    buildCartKey(item.productId, item.variant);
+  return { ...item, cartKey };
+}
 
 function readStoredCart(): CartItem[] {
   if (typeof window === "undefined") {
@@ -46,7 +57,10 @@ function readStoredCart(): CartItem[] {
       return [];
     }
     const parsed = JSON.parse(raw) as CartItem[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.map((item) => normalizeCartItem(item));
   } catch {
     return [];
   }
@@ -70,28 +84,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items, hydrated]);
 
   const addItem = useCallback(
-    (item: Omit<CartItem, "quantity">, quantity = 1) => {
+    (item: Omit<CartItem, "quantity" | "cartKey">, quantity = 1) => {
+      const cartKey = buildCartKey(item.productId, item.variant);
       setItems((prev) => {
-        const existing = prev.find((i) => i.productId === item.productId);
+        const existing = prev.find((i) => i.cartKey === cartKey);
         if (existing) {
           return prev.map((i) =>
-            i.productId === item.productId
+            i.cartKey === cartKey
               ? { ...i, quantity: i.quantity + quantity }
               : i
           );
         }
-        return [...prev, { ...item, quantity }];
+        return [...prev, { ...item, cartKey, quantity }];
       });
       setIsOpen(true);
     },
     []
   );
 
-  const updateQuantity = useCallback((productId: number, quantity: number) => {
+  const updateQuantity = useCallback((cartKey: string, quantity: number) => {
     setItems((prev) =>
       prev
         .map((item) =>
-          item.productId === productId
+          item.cartKey === cartKey
             ? { ...item, quantity: Math.max(1, quantity) }
             : item
         )
@@ -99,8 +114,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const removeItem = useCallback((productId: number) => {
-    setItems((prev) => prev.filter((item) => item.productId !== productId));
+  const removeItem = useCallback((cartKey: string) => {
+    setItems((prev) => prev.filter((item) => item.cartKey !== cartKey));
   }, []);
 
   const clearCart = useCallback(() => setItems([]), []);

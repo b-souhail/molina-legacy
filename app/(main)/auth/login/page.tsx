@@ -181,6 +181,7 @@ export default function Login() {
   const redirectTo = searchParams.get("redirect") || "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -195,7 +196,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login(email, password, { rememberMe });
       setUser(user);
       const safeRedirect =
         redirectTo.startsWith("/") && !redirectTo.startsWith("//")
@@ -396,6 +397,8 @@ export default function Login() {
               <input
                 type="checkbox"
                 name="remember"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 className="accent-[var(--gold)]"
               />
 

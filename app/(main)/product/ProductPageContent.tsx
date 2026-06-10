@@ -1,26 +1,64 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Heart, Share2, ShoppingCart, Check } from "lucide-react";
 
 import { useCart } from "@/lib/cart-context";
+import { shareProduct } from "@/lib/share-product";
+import { useWishlist } from "@/lib/wishlist-context";
 import { resolveProductImageUrl } from "@/lib/image-url";
-import { fetchProductBySlug, type Product } from "@/lib/products-api";
+import {
+  buildVariantLabel,
+  computeAdjustedPrice,
+  groupProductOptions,
+} from "@/lib/product-options";
+import { fetchProductBySlug, type Product, type ProductImage } from "@/lib/products-api";
 
-export default function ProductPageContent() {
-  const searchParams = useSearchParams();
-  const slug = searchParams.get("slug") ?? "";
+export default function ProductPageContent({ slug }: { slug: string }) {
   const { addItem, openCart } = useCart();
+  const { isWishlisted, toggleItem } = useWishlist();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isAddedToCart, setIsAddedToCart] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
+  const [selectedOptionIds, setSelectedOptionIds] = useState<number[]>([]);
+  const [optionError, setOptionError] = useState<string | null>(null);
+
+  const displayImages = useMemo<ProductImage[]>(() => {
+    if (!product) {
+      return [];
+    }
+    if (product.images && product.images.length > 0) {
+      return [...product.images].sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+    return [
+      {
+        url: product.imageUrl,
+        principal: true,
+        sortOrder: 0,
+      },
+    ];
+  }, [product]);
+
+  const optionGroups = useMemo(
+    () => groupProductOptions(product?.options ?? []),
+    [product]
+  );
+
+  const displayPrice = useMemo(() => {
+    if (!product) return 0;
+    return computeAdjustedPrice(
+      product.price,
+      product.options ?? [],
+      selectedOptionIds
+    );
+  }, [product, selectedOptionIds]);
 
   useEffect(() => {
     if (!slug) {
@@ -59,16 +97,67 @@ export default function ProductPageContent() {
     };
   }, [slug]);
 
+  useEffect(() => {
+    if (!product) {
+      setActiveImageUrl(null);
+      setSelectedOptionIds([]);
+      return;
+    }
+
+    const principal =
+      displayImages.find((image) => image.principal)?.url ??
+      displayImages[0]?.url ??
+      product.imageUrl;
+    setActiveImageUrl(principal);
+
+    const defaults = groupProductOptions(product.options ?? [])
+      .map((group) => group.choices[0]?.id)
+      .filter((id): id is number => id != null);
+    setSelectedOptionIds(defaults);
+    setOptionError(null);
+  }, [product, displayImages]);
+
+  const selectOption = (groupName: string, optionId: number) => {
+    const group = optionGroups.find((entry) => entry.name === groupName);
+    if (!group) return;
+
+    const groupOptionIds = group.choices.map((choice) => choice.id);
+    setSelectedOptionIds((current) => [
+      ...current.filter((id) => !groupOptionIds.includes(id)),
+      optionId,
+    ]);
+    setOptionError(null);
+  };
+
+  const validateOptions = () => {
+    for (const group of optionGroups) {
+      const hasSelection = group.choices.some((choice) =>
+        selectedOptionIds.includes(choice.id)
+      );
+      if (!hasSelection) {
+        setOptionError(`Choisissez une option : ${group.name}`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product || !validateOptions()) return;
+
+    const allOptions = product.options ?? [];
+    const variant = buildVariantLabel(allOptions, selectedOptionIds);
 
     addItem(
       {
         productId: product.id,
         slug: product.slug,
         name: product.name,
-        price: Number(product.price),
-        imageUrl: product.imageUrl,
+        price: displayPrice,
+        imageUrl: activeImageUrl ?? product.imageUrl,
+        variant: variant || undefined,
+        selectedOptionIds:
+          selectedOptionIds.length > 0 ? selectedOptionIds : undefined,
       },
       quantity
     );
@@ -80,6 +169,40 @@ export default function ProductPageContent() {
     handleAddToCart();
     openCart();
   };
+
+  const handleToggleFavorite = () => {
+    if (!product) return;
+    toggleItem({
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: displayPrice,
+      imageUrl: activeImageUrl ?? product.imageUrl,
+    });
+  };
+
+  const handleShare = async () => {
+    if (!product) return;
+    try {
+      const result = await shareProduct({
+        title: product.name,
+        slug: product.slug,
+        text: product.description,
+      });
+      setShareMessage(
+        result === "shared" ? "Produit partagé" : "Lien copié dans le presse-papiers"
+      );
+      setTimeout(() => setShareMessage(null), 2500);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+      setShareMessage("Partage impossible");
+      setTimeout(() => setShareMessage(null), 2500);
+    }
+  };
+
+  const isFavorited = product ? isWishlisted(product.id) : false;
 
   if (loading) {
     return (
@@ -123,14 +246,40 @@ export default function ProductPageContent() {
 
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
-          <div className="relative aspect-square rounded-[2px] overflow-hidden border border-(--gold)/30">
-            <Image
-              src={resolveProductImageUrl(product.imageUrl)}
-              alt={product.name}
-              fill
-              priority
-              className="object-cover"
-            />
+          <div className="space-y-4">
+            <div className="relative aspect-square rounded-[2px] overflow-hidden border border-(--gold)/30">
+              <Image
+                src={resolveProductImageUrl(activeImageUrl ?? product.imageUrl)}
+                alt={product.name}
+                fill
+                priority
+                className="object-cover"
+              />
+            </div>
+            {displayImages.length > 1 && (
+              <div className="grid grid-cols-4 gap-3">
+                {displayImages.map((image, index) => (
+                  <button
+                    key={`${image.url}-${index}`}
+                    type="button"
+                    onClick={() => setActiveImageUrl(image.url)}
+                    className={`relative aspect-square overflow-hidden border transition-colors ${
+                      activeImageUrl === image.url
+                        ? "border-(--gold)"
+                        : "border-(--gold)/20 hover:border-(--gold)/50"
+                    }`}
+                  >
+                    <Image
+                      src={resolveProductImageUrl(image.url)}
+                      alt=""
+                      fill
+                      sizes="120px"
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-8">
@@ -139,8 +288,13 @@ export default function ProductPageContent() {
                 {product.name}
               </h1>
               <span className="text-3xl md:text-4xl font-heading text-(--gold) tracking-tight">
-                {Number(product.price).toFixed(0)} MAD
+                {displayPrice.toFixed(0)} MAD
               </span>
+              {displayPrice !== Number(product.price) && (
+                <p className="mt-2 text-sm text-(--sage)">
+                  Prix de base : {Number(product.price).toFixed(0)} MAD
+                </p>
+              )}
               <div className="h-px bg-gradient-to-r from-[var(--gold)] to-transparent opacity-30 my-6" />
             </div>
 
@@ -148,6 +302,47 @@ export default function ProductPageContent() {
               <p className="text-base leading-relaxed text-(--forest)/80">
                 {product.description}
               </p>
+            )}
+
+            {optionGroups.length > 0 && (
+              <div className="space-y-5">
+                {optionGroups.map((group) => (
+                  <div key={group.name}>
+                    <label className="block text-xs uppercase tracking-[0.2em] text-(--forest) font-bold mb-3">
+                      {group.name}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {group.choices.map((choice) => {
+                        const selected = selectedOptionIds.includes(choice.id);
+                        const adjustment = Number(choice.priceAdjustment ?? 0);
+                        return (
+                          <button
+                            key={choice.id}
+                            type="button"
+                            onClick={() => selectOption(group.name, choice.id)}
+                            className={`border px-4 py-2 text-sm transition-colors ${
+                              selected
+                                ? "border-(--gold) bg-(--gold)/10 text-(--forest)"
+                                : "border-(--gold)/25 text-(--forest)/80 hover:border-(--gold)"
+                            }`}
+                          >
+                            {choice.value}
+                            {adjustment !== 0 && (
+                              <span className="ml-2 text-xs text-(--sage)">
+                                {adjustment > 0 ? "+" : ""}
+                                {adjustment.toFixed(0)} MAD
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                {optionError && (
+                  <p className="text-sm text-red-600">{optionError}</p>
+                )}
+              </div>
             )}
 
             <div>
@@ -212,33 +407,43 @@ export default function ProductPageContent() {
               </button>
             </div>
 
-            <div className="flex gap-4">
-              <button
-                onClick={() => setIsFavorited(!isFavorited)}
-                className="flex-1 flex items-center justify-center gap-2 h-12 border border-(--gold)/30 rounded-[2px] hover:border-(--gold) hover:bg-(--gold)/5 transition-all duration-300 group"
-              >
-                <Heart
-                  size={18}
-                  className={`transition-colors ${
-                    isFavorited
-                      ? "fill-(--gold) text-(--gold)"
-                      : "text-(--forest) group-hover:text-(--gold)"
-                  }`}
-                />
-                <span className="text-xs uppercase tracking-[0.1em] text-(--forest) group-hover:text-(--gold) transition-colors">
-                  Favoris
-                </span>
-              </button>
+            <div className="space-y-3">
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={handleToggleFavorite}
+                  className="flex-1 flex items-center justify-center gap-2 h-12 border border-(--gold)/30 rounded-[2px] hover:border-(--gold) hover:bg-(--gold)/5 transition-all duration-300 group"
+                >
+                  <Heart
+                    size={18}
+                    className={`transition-colors ${
+                      isFavorited
+                        ? "fill-(--gold) text-(--gold)"
+                        : "text-(--forest) group-hover:text-(--gold)"
+                    }`}
+                  />
+                  <span className="text-xs uppercase tracking-[0.1em] text-(--forest) group-hover:text-(--gold) transition-colors">
+                    {isFavorited ? "Dans les favoris" : "Favoris"}
+                  </span>
+                </button>
 
-              <button className="flex-1 flex items-center justify-center gap-2 h-12 border border-(--gold)/30 rounded-[2px] hover:border-(--gold) hover:bg-(--gold)/5 transition-all duration-300 group">
-                <Share2
-                  size={18}
-                  className="text-(--forest) group-hover:text-(--gold) transition-colors"
-                />
-                <span className="text-xs uppercase tracking-[0.1em] text-(--forest) group-hover:text-(--gold) transition-colors">
-                  Partager
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="flex-1 flex items-center justify-center gap-2 h-12 border border-(--gold)/30 rounded-[2px] hover:border-(--gold) hover:bg-(--gold)/5 transition-all duration-300 group"
+                >
+                  <Share2
+                    size={18}
+                    className="text-(--forest) group-hover:text-(--gold) transition-colors"
+                  />
+                  <span className="text-xs uppercase tracking-[0.1em] text-(--forest) group-hover:text-(--gold) transition-colors">
+                    Partager
+                  </span>
+                </button>
+              </div>
+              {shareMessage && (
+                <p className="text-center text-xs text-(--sage)">{shareMessage}</p>
+              )}
             </div>
           </div>
         </div>

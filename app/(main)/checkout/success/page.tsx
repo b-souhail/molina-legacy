@@ -5,9 +5,18 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { CheckCircle2 } from "lucide-react";
 
+import { useAuth } from "@/lib/auth-context";
+
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order");
+  const { user } = useAuth();
+
+  const factureHref = orderId
+    ? user
+      ? `/account/orders/${orderId}/facture`
+      : `/auth/login?redirect=${encodeURIComponent(`/account/orders/${orderId}/facture`)}`
+    : null;
 
   return (
     <div className="min-h-screen bg-(--cream)">
@@ -27,11 +36,17 @@ function CheckoutSuccessContent() {
         <p className="mt-2 max-w-md text-sm leading-relaxed text-(--sage)">
           Nous préparons votre commande. Vous recevrez une confirmation par email.
         </p>
+        {orderId && !user && (
+          <p className="mt-4 max-w-md text-xs leading-relaxed text-(--sage)">
+            Connectez-vous avec l&apos;email utilisé lors de la commande pour
+            consulter votre facture.
+          </p>
+        )}
 
         <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
-          {orderId && (
+          {factureHref && (
             <Link
-              href={`/facture/${orderId}`}
+              href={factureHref}
               className="border border-(--forest)/25 px-8 py-3 text-[10px] uppercase tracking-[0.35em] text-(--forest) transition-colors hover:border-(--forest) hover:bg-(--forest) hover:text-(--gold)"
             >
               Voir la facture

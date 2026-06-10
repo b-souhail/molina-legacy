@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Package } from "lucide-react";
 
+import { resolveProductImageUrl } from "@/lib/image-url";
 import {
   fetchOrderById,
   fetchPaymentByOrderId,
@@ -260,7 +261,7 @@ export default function OrderDetailPage() {
                   <div className="relative h-20 w-16 shrink-0 overflow-hidden border border-(--gold)/15 bg-white">
                     {line.imageUrl ? (
                       <Image
-                        src={line.imageUrl}
+                        src={resolveProductImageUrl(line.imageUrl)}
                         alt={line.productName}
                         fill
                         className="object-cover"

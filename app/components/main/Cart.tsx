@@ -91,7 +91,7 @@ export default function Cart() {
             <div className="space-y-4">
               {items.map((item) => (
                 <article
-                  key={item.productId}
+                  key={item.cartKey}
                   className="group flex gap-4 border border-white/5 bg-white/[0.025] p-3 transition-colors duration-300 hover:border-(--gold)/20"
                 >
                   <div className="relative h-28 w-20 shrink-0 overflow-hidden border border-white/5">
@@ -119,7 +119,7 @@ export default function Cart() {
                       <div className="flex items-center border border-(--gold)/15">
                         <button
                           onClick={() =>
-                            updateQuantity(item.productId, item.quantity - 1)
+                            updateQuantity(item.cartKey, item.quantity - 1)
                           }
                           className="flex h-8 w-8 items-center justify-center text-(--cream)/50 transition-colors hover:text-(--gold)"
                         >
@@ -130,7 +130,7 @@ export default function Cart() {
                         </span>
                         <button
                           onClick={() =>
-                            updateQuantity(item.productId, item.quantity + 1)
+                            updateQuantity(item.cartKey, item.quantity + 1)
                           }
                           className="flex h-8 w-8 items-center justify-center text-(--cream)/50 transition-colors hover:text-(--gold)"
                         >
@@ -140,7 +140,7 @@ export default function Cart() {
 
                       <div className="flex flex-col items-end gap-2">
                         <button
-                          onClick={() => removeItem(item.productId)}
+                          onClick={() => removeItem(item.cartKey)}
                           className="text-(--cream)/30 transition-colors hover:text-(--gold)"
                           aria-label="Retirer du panier"
                         >

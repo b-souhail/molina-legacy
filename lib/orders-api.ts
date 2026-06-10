@@ -4,6 +4,7 @@ const API_BASE =
 export type OrderLineRequest = {
   productId: number;
   quantity: number;
+  optionIds?: number[];
 };
 
 export type PaymentType = "ESPECES" | "CARTE";
@@ -27,6 +28,7 @@ export type OrderLineResponse = {
   quantity: number;
   unitPrice: number;
   imageUrl: string;
+  optionsLabel?: string;
 };
 
 export type OrderStatus =
@@ -259,6 +261,10 @@ export async function fetchPaymentByOrderId(
     PaymentOrderResponse | { global?: string; message?: string }
   >(res);
 
+  if (res.status === 401 || res.status === 403) {
+    throw new Error("CONNECT_REQUIRED");
+  }
+
   if (res.status === 404) {
     throw new Error("Paiement introuvable");
   }
@@ -281,6 +287,10 @@ export async function fetchFactureByOrderId(
   const data = await parseJson<FactureResponse | { global?: string; message?: string }>(
     res
   );
+
+  if (res.status === 401 || res.status === 403) {
+    throw new Error("CONNECT_REQUIRED");
+  }
 
   if (res.status === 404) {
     throw new Error("Facture introuvable");

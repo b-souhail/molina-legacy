@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Package } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
+import { resolveProductImageUrl } from "@/lib/image-url";
 import {
   fetchMyOrderById,
   formatOrderDate,
@@ -136,7 +137,7 @@ export default function MyOrderDetailPage() {
                   <div className="relative h-20 w-16 shrink-0 overflow-hidden border border-(--gold)/15 bg-white">
                     {line.imageUrl ? (
                       <Image
-                        src={line.imageUrl}
+                        src={resolveProductImageUrl(line.imageUrl)}
                         alt={line.productName}
                         fill
                         className="object-cover"
@@ -187,7 +188,7 @@ export default function MyOrderDetailPage() {
             </div>
 
             <Link
-              href={`/facture/${order.id}`}
+              href={`/account/orders/${order.id}/facture`}
               className="flex h-12 w-full items-center justify-center border border-(--gold) bg-(--gold) text-[10px] uppercase tracking-[0.28em] text-black transition-opacity hover:opacity-90"
             >
               Voir la facture
